@@ -1,0 +1,213 @@
+#include "stdafx.h"
+#include<cstdio>
+#include<cstring>
+#include<iostream>
+using namespace std;
+#define lson k>>1
+#define rson k>>1|1
+#define tp(i) node[i].top
+#define hd(i) node[i].head
+#define id(i) node[i].index
+#define dp(i) node[i].deep 
+#define fa(i) node[i].father
+#define sn(i) node[i].son
+#define sz(i) node[i].size
+#define lt(i) tree[i].left
+#define rt(i) tree[i].right
+#define vl(i) tree[i].value
+#define ct(i) tree[i].cnt
+#define fr(i) edge[i].from
+#define to(i) edge[i].to
+#define ev(i) edge[i].value
+#define nx(i) edge[i].next
+const int maxN = 100010;
+struct Node {
+	int top, head, index, deep, father, son, size;
+}node[maxN];
+struct Tree {
+	int left, right, value, cnt;
+}tree[maxN << 2];
+struct Edge {
+	int from, to, value, next;
+}edge[maxN << 1];
+
+int n, index = 0;
+
+void init ();
+void work ();
+void addedge (int, int, int, int);
+void dfs1 (int, int);
+void dfs2 (int, int);
+void build (int, int, int);
+int query (int, int, int);
+void update (int, int, int, int);
+int slove1 (int, int);
+void slove2 (int, int, int);
+void pushdown (int);
+
+int main ()
+{
+	init ();
+	work ();
+	return 0;
+}
+
+void init ()
+{
+	memset (tree, 0, sizeof (tree));
+	memset (node, 0, sizeof (node));
+	memset (edge, 0, sizeof (edge));
+	scanf ("%d", &n);
+	for (int i = 1; i < n; i++)
+	{
+		int x, y, z;
+		scanf ("%d%d%d", &x, &y, &z);
+		addedge (x, y, i, z);
+		addedge (x, y, i + n, z);
+	};
+	dfs1 (1, 1);
+	dfs2 (1, 1);
+}
+
+void addedge (int x, int y, int k, int v)
+{
+	fr (k) = x;
+	to (k) = y;
+	ev (k) = v;
+	nx (k) = hd (x);
+	hd (x) = k;
+}
+
+void dfs1 (int k, int _dp)
+{
+	sz (k) = 1;
+	dp (k) = _dp;
+	for (int i = hd (i); i; i = nx (i))
+	{
+		if (sz (to (i))) continue;
+		fa (to (i)) = k;
+		dfs1 (to (i), _dp + 1);
+		sz (k) += sz (to (i));
+		if (sz (sn (k)) < sz (to (i))) sn (k) = to (i);
+	}
+}
+
+void dfs2 (int k, int _tp)
+{
+	id (k) = ++index;
+	tp (k) = _tp;
+	if (sn (k)) dfs2 (sn (k), _tp);
+	for (int i = hd (i); i; i = nx (i))
+		if (!id (to (i))) dfs2 (to (i), to (i));
+}
+
+void work ()
+{
+	build (1, 1, n);
+	for (int i = 1; i < n; i++)
+	{
+		int u = fr (i);
+		int v = to (i);
+		if (dp (u) < dp (v)) swap (u, v);
+		update (1, id (u), id (u), ev (i));
+	}
+	int Q;
+	scanf ("%d", &Q);
+	while (Q--)
+	{
+		int flag, u, v, w;
+		scanf ("%d", &flag);
+		if (flag)
+		{
+			scanf ("%d%d", &u, &v);
+			printf ("%d", slove1 (u, v));
+		}
+		else {
+			scanf ("%d%d%d", &u, &v, &w);
+			slove2 (u, v, w);
+		}
+	}
+}
+
+void build (int k, int l, int r)
+{
+	lt (k) = l;
+	rt (k) = r;
+	if (l == r) return;
+	int mid = (l + r) >> 1;
+	build (lson, l, mid);
+	if (mid < r) build (rson, mid + 1, r);
+}
+
+void update (int k, int l, int r, int v)
+{
+	if (l <= lt (k) && r > rt (k))
+	{
+		vl (k) += v;
+		ct (k) += v;
+		return;
+	}
+	pushdown (k);
+	if (l <= rt (lson)) update (lson, l, r, v);
+	if (r >= lt (rson)) update (rson, l, r, v);
+	vl (k) = vl (lson) + vl (rson);
+}
+
+int query (int k, int l, int r)
+{
+	if (l <= lt (k) && r >= rt (k)) return vl (k);
+	int ans = 0;
+	if (l <= rt (lson)) ans += query (lson, l, r);
+	if (r >= lt (rson)) ans += query (rson, l, r);
+	return ans;
+}
+
+void pushdown (int k)
+{
+	if (ct (k))
+	{
+		ct (lson) += ct (k);
+		ct (rson) += ct (k);
+		vl (lson) += (rt (lson) - lt (lson) + 1)*ct (k);
+		vl (rson) += (rt (rson) - lt (rson) + 1)*ct (k);
+		ct (k) = 0;
+	}
+}
+
+int slove1 (int u, int v)
+{
+	int f1 = tp (u), f2 = tp (v), ans = 0;
+	while (f1 != f2)
+	{
+		if (dp (f1) < dp (f2))
+		{
+			swap (f1, f2);
+			swap (u, v);
+		}
+		query (1, id (f1), id (u));
+		u = fa (f1);
+		f1 = tp (u);
+	}
+	if (u == v) return ans;
+	if (dp (u) < dp (v)) swap (u, v);
+	return ans + query (1, id (sn (v)), id (u));
+}
+
+void slove2 (int u, int v, int w)
+{
+	int f1 = tp (u), f2 = tp (v);
+	while (f1 != f2)
+	{
+		if (dp (f1) < dp (f2))
+		{
+			swap (f1, f2);
+			swap (u, v);
+		}
+		update (1, id (f1), id (u), w);
+		u = fa (f1);
+		f1 = tp (u);
+	}
+	if (u == v) return;
+	if (dp (u) < dp (v)) swap (u, v);
+	update (1, id (sn (v)), id (u), w);
+}
